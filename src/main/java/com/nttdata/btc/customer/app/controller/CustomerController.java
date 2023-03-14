@@ -1,8 +1,11 @@
 package com.nttdata.btc.customer.app.controller;
 
+import com.nttdata.btc.customer.app.model.request.BalanceRequest;
 import com.nttdata.btc.customer.app.model.request.CustomerRequest;
 import com.nttdata.btc.customer.app.model.request.UpdateCustomerRequest;
+import com.nttdata.btc.customer.app.model.response.BalanceResponse;
 import com.nttdata.btc.customer.app.model.response.CustomerResponse;
+import com.nttdata.btc.customer.app.proxy.ProductRetrofitClient;
 import com.nttdata.btc.customer.app.service.CustomerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import javax.validation.Valid;
 
 /**
  * Class CustomerController.
@@ -28,6 +33,21 @@ public class CustomerController {
     @Autowired
     private CustomerService service;
 
+    @Autowired
+    private ProductRetrofitClient client;
+
+    /**
+     * Service check balance
+     *
+     * @return
+     */
+    @PostMapping("/check/balance")
+    public Mono<BalanceResponse> checkBalance(@Valid @RequestBody BalanceRequest request) {
+        log.info("<<<<<<<<<<<<<<<< Start Check Balance >>>>>>>>>>>>>>>>>");
+        log.info("Request :: " + request);
+        return service.checkBalance(request);
+    }
+
     /**
      * Service find by id.
      *
@@ -35,7 +55,7 @@ public class CustomerController {
      * @return {@link CustomerResponse}
      */
     @GetMapping("id/{id}")
-    public Mono<ResponseEntity<CustomerResponse>> findById(@PathVariable final String id) {
+    public Mono<ResponseEntity<CustomerResponse>> findById(@PathVariable String id) {
         return service.findById(id)
                 .map(c -> new ResponseEntity<>(c, HttpStatus.OK))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -60,7 +80,7 @@ public class CustomerController {
      * @return {@link CustomerResponse}
      */
     @PostMapping("/")
-    public Mono<ResponseEntity<CustomerResponse>> createCustomer(@RequestBody final CustomerRequest request) {
+    public Mono<ResponseEntity<CustomerResponse>> createCustomer(@Valid @RequestBody final CustomerRequest request) {
         log.info("Start CreateCustomer.");
         return service.save(request)
                 .map(p -> new ResponseEntity<>(p, HttpStatus.CREATED))
@@ -74,7 +94,7 @@ public class CustomerController {
      * @return {@link CustomerResponse}
      */
     @PutMapping("/")
-    public Mono<ResponseEntity<CustomerResponse>> updateCustomer(@RequestBody final UpdateCustomerRequest request) {
+    public Mono<ResponseEntity<CustomerResponse>> updateCustomer(@Valid @RequestBody final UpdateCustomerRequest request) {
         log.info("Start UpdateCustomer.");
         return service.update(request)
                 .map(response -> new ResponseEntity<>(response, HttpStatus.OK))

@@ -1,29 +1,42 @@
 package com.nttdata.btc.customer.app.service.impl;
 
 import com.nttdata.btc.customer.app.model.entity.Customer;
+import com.nttdata.btc.customer.app.model.request.BalanceRequest;
 import com.nttdata.btc.customer.app.model.request.CustomerRequest;
 import com.nttdata.btc.customer.app.model.request.UpdateCustomerRequest;
+import com.nttdata.btc.customer.app.model.response.AccountBalanceResponse;
+import com.nttdata.btc.customer.app.model.response.BalanceProductResponse;
+import com.nttdata.btc.customer.app.model.response.BalanceResponse;
 import com.nttdata.btc.customer.app.model.response.CustomerResponse;
+import com.nttdata.btc.customer.app.proxy.AccountRetrofitClient;
+import com.nttdata.btc.customer.app.proxy.ProductRetrofitClient;
+import com.nttdata.btc.customer.app.proxy.beans.account.AccountResponse;
 import com.nttdata.btc.customer.app.repository.CustomerRepository;
 import com.nttdata.btc.customer.app.service.CustomerService;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static com.nttdata.btc.customer.app.util.constant.Constants.DEFAULT_FALSE;
-
 
 /**
  * Service Implement CustomerServiceImpl.
  *
  * @author lrs
  */
+@Slf4j
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
@@ -32,6 +45,18 @@ public class CustomerServiceImpl implements CustomerService {
      */
     @Autowired
     CustomerRepository repository;
+
+    /**
+     * Inject dependency {@link CustomerRepository}
+     */
+    @Autowired
+    ProductRetrofitClient productClient;
+
+    /**
+     * Inject dependency {@link AccountRetrofitClient}
+     */
+    @Autowired
+    AccountRetrofitClient accountClient;
 
     /**
      * This method return all customers.
@@ -112,6 +137,87 @@ public class CustomerServiceImpl implements CustomerService {
                 .flatMap(cupdated -> Mono.just(buildCustomerR.apply(cupdated)))
                 .onErrorReturn(new CustomerResponse());
     }
+
+    /**
+     * This method check balance by product from customer.
+     *
+     * @param request {@link BalanceRequest}
+     * @return {@link BalanceResponse}
+     */
+    @Override
+    public Mono<BalanceResponse> checkBalance(BalanceRequest request) {
+        BalanceResponse balanceResponse = new BalanceResponse();
+        List<AccountBalanceResponse> accountList = new ArrayList<>();
+        List<BalanceProductResponse> balanceProducts = new ArrayList<>();
+        return getCustomer(request).map(entity -> buildCustomerR.apply(entity))
+                .map(customer -> setCustomer.apply(customer, balanceResponse))
+                .flatMap(response -> accountClient.findByHolder(response.getCustomer().getId_customer()))
+                .map(accounts -> {
+                    setBalance(accounts, balanceProducts);
+                    accounts.forEach(account -> accountList.add(buildAccount.apply(account)));
+                    balanceResponse.setAccounts(accountList);
+                    balanceResponse.setBalanceProducts(balanceProducts);
+                    return balanceResponse;
+                });
+    }
+
+    /**
+     * Method to group accounts by product.
+     *
+     * @param accounts        {@link List<AccountResponse>}
+     * @param balanceProducts {@link List<BalanceProductResponse>}
+     */
+    private void setBalance(List<AccountResponse> accounts, List<BalanceProductResponse> balanceProducts) {
+        Map<String, List<AccountResponse>> groupedProducts = accounts.stream().collect(Collectors.groupingBy(AccountResponse::getProduct));
+        groupedProducts.forEach((key, value) -> balanceProducts.add(buildBalance(key, value)));
+    }
+
+    /**
+     * Method to calculate and build balance by product.
+     *
+     * @param productCode {@link String}
+     * @param account     {@link List<AccountResponse>}
+     * @return {@link BalanceProductResponse}
+     */
+    private BalanceProductResponse buildBalance(String productCode, List<AccountResponse> account) {
+        BalanceProductResponse response = new BalanceProductResponse();
+        double balance;
+        balance = account.stream().mapToDouble(AccountResponse::getBalance).sum();
+        response.setProductCode(productCode);
+        response.setProductBalance(balance);
+        return response;
+    }
+
+    /**
+     * Function build new AccountBalanceResponse.
+     */
+    Function<AccountResponse, AccountBalanceResponse> buildAccount = account -> {
+        AccountBalanceResponse response = new AccountBalanceResponse();
+        response.setCode_account(account.getCode_account());
+        response.setBalance(account.getBalance());
+        response.setProduct(account.getProduct());
+        return response;
+    };
+
+    /**
+     * Method find a consumer by document.
+     *
+     * @param request {@link BalanceRequest}
+     * @return {@link Customer}
+     */
+    private Mono<Customer> getCustomer(BalanceRequest request) {
+        return repository.findByDocument(request.getTypeDocument(), request.getNumberDocument()).collectList()
+                .map(list -> list.stream().findFirst().orElse(null))
+                .onErrorResume(e -> Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error not found.")));
+    }
+
+    /**
+     * BiFunction update BalanceResponse.
+     */
+    BiFunction<CustomerResponse, BalanceResponse, BalanceResponse> setCustomer = (customer, response) -> {
+        response.setCustomer(customer);
+        return response;
+    };
 
     /**
      * BiFunction update Customer.

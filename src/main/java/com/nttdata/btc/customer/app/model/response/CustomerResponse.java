@@ -1,6 +1,5 @@
 package com.nttdata.btc.customer.app.model.response;
 
-import com.nttdata.btc.customer.app.model.request.BaseRequest;
 import lombok.*;
 
 import java.util.Date;
@@ -15,7 +14,15 @@ import java.util.Date;
 @ToString
 @Getter
 @Setter
-public class CustomerResponse extends BaseRequest {
+public class CustomerResponse {
+    private String type_customer;
+    private String category_customer;
+    private String name;
+    private String surname;
+    private String type_document;
+    private String number_document;
+    private String phone;
+    private String email;
     private String id_customer;
     private Date registerDate;
     private Boolean status = false;

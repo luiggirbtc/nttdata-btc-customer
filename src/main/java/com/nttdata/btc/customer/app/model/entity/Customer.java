@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  *
  * @author lrs
  */
+@ToString
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,7 +36,7 @@ public class Customer {
     /**
      * 0 = ninguno, 1 = titular , 2 = firmante
      */
-    private Byte category_customer;
+    private String category_customer;
 
     private String name;
 
@@ -68,7 +69,7 @@ public class Customer {
      * @param phone             {@link String}
      * @param email             {@link String}
      */
-    public Customer(String type_customer, Byte category_customer, String name,
+    public Customer(String type_customer, String category_customer, String name,
                     String surname, String type_document, String number_document,
                     String phone, String email) {
         this.type_customer = type_customer;
