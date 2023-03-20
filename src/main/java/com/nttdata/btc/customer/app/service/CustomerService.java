@@ -5,6 +5,7 @@ import com.nttdata.btc.customer.app.model.request.CustomerRequest;
 import com.nttdata.btc.customer.app.model.request.UpdateCustomerRequest;
 import com.nttdata.btc.customer.app.model.response.BalanceResponse;
 import com.nttdata.btc.customer.app.model.response.CustomerResponse;
+import com.nttdata.btc.customer.app.model.response.CustomerOperationsResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -54,4 +55,12 @@ public interface CustomerService {
      * @return {@link BalanceResponse}
      */
     Mono<BalanceResponse> checkBalance(BalanceRequest request);
+
+    /**
+     * Method return all operations by product.
+     *
+     * @param request {@link BalanceRequest}
+     * @return {@link CustomerOperationsResponse}
+     */
+    Mono<CustomerOperationsResponse> getOperations(BalanceRequest request);
 }

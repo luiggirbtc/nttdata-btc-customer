@@ -2,6 +2,7 @@ package com.nttdata.btc.customer.app.proxy.config;
 
 import com.jakewharton.retrofit2.adapter.reactor.ReactorCallAdapterFactory;
 import com.nttdata.btc.customer.app.proxy.AccountRetrofitClient;
+import com.nttdata.btc.customer.app.proxy.OperationRetrofitClient;
 import com.nttdata.btc.customer.app.proxy.ProductRetrofitClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * config ClientRetrofitConfig.
+ *
+ * @author lrs
  */
 @Configuration
 public class ClientRetrofitConfig {
@@ -31,5 +34,15 @@ public class ClientRetrofitConfig {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         return retrofit.create(AccountRetrofitClient.class);
+    }
+
+    @Bean
+    OperationRetrofitClient operationRetrofitClient() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://localhost:8086/api/v1/operation/")
+                .addCallAdapterFactory(ReactorCallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        return retrofit.create(OperationRetrofitClient.class);
     }
 }
