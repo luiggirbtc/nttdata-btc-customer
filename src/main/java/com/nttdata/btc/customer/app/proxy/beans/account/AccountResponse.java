@@ -3,7 +3,11 @@ package com.nttdata.btc.customer.app.proxy.beans.account;
 import java.util.Date;
 import java.util.List;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Class response ProductResponse.

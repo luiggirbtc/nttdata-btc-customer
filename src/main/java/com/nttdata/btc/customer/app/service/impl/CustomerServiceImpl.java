@@ -4,7 +4,12 @@ import com.nttdata.btc.customer.app.model.entity.Customer;
 import com.nttdata.btc.customer.app.model.request.BalanceRequest;
 import com.nttdata.btc.customer.app.model.request.CustomerRequest;
 import com.nttdata.btc.customer.app.model.request.UpdateCustomerRequest;
-import com.nttdata.btc.customer.app.model.response.*;
+import com.nttdata.btc.customer.app.model.response.AccountBalanceResponse;
+import com.nttdata.btc.customer.app.model.response.BalanceProductResponse;
+import com.nttdata.btc.customer.app.model.response.BalanceResponse;
+import com.nttdata.btc.customer.app.model.response.CustomerOperationsResponse;
+import com.nttdata.btc.customer.app.model.response.CustomerResponse;
+import com.nttdata.btc.customer.app.model.response.OpResponse;
 import com.nttdata.btc.customer.app.proxy.AccountRetrofitClient;
 import com.nttdata.btc.customer.app.proxy.OperationRetrofitClient;
 import com.nttdata.btc.customer.app.proxy.beans.account.AccountResponse;
@@ -12,11 +17,13 @@ import com.nttdata.btc.customer.app.proxy.beans.operation.OperationResponse;
 import com.nttdata.btc.customer.app.repository.CustomerRepository;
 import com.nttdata.btc.customer.app.service.CustomerService;
 
-import java.util.*;
+import java.util.ArrayList;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.nttdata.btc.customer.app.util.mappers.OpResponseMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -185,7 +192,7 @@ public class CustomerServiceImpl implements CustomerService {
                 .map(customer -> CustomerOperationsResponse.builder().customer(customer).build())
                 .flatMap(response -> accountClient.findByHolder(response.getCustomer().getId_customer())
                         .map(accounts -> accounts.stream().filter(s -> request.getCodeProduct().equalsIgnoreCase(s.getProduct())).map(s -> s.getId_account()).collect(Collectors.toList())
-                        ).map(s->response));
+                        ).map(s -> response));
 /*
 valores -> toFluxx(valores).flatMap(valor -> {
                             //return operationClient.findBySourceAcc(valor).map(lista -> buildMapa(valor, lista))))
@@ -200,8 +207,8 @@ valores -> toFluxx(valores).flatMap(valor -> {
     }
 
     private Map<String, List<OperationResponse>> buildMapa(String key, List<OperationResponse> lista) {
-        log.info("buildMapa :: KEY -  " +key);
-        log.info("buildMapa :: LISTA -  " +lista);
+        log.info("buildMapa :: KEY -  " + key);
+        log.info("buildMapa :: LISTA -  " + lista);
         Map<String, List<OperationResponse>> mapa = new HashMap<String, List<OperationResponse>>();
         return (Map<String, List<OperationResponse>>) mapa.put(key, lista);
     }
