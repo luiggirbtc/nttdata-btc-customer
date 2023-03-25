@@ -180,8 +180,8 @@ public class CustomerServiceImpl implements CustomerService {
      */
     @Override
     public Mono<CustomerOperationsResponse> getOperations(BalanceRequest request) {
-        List<OpResponse> operations = new ArrayList<>();
-        List<OperationResponse> listOperations = new ArrayList<>();
+        //List<OpResponse> operations = new ArrayList<>();
+        //List<OperationResponse> listOperations = new ArrayList<>();
         // CustomerOperationsResponse response = new CustomerOperationsResponse();
         /*return operationClient.findBySourceAcc("640c24cd3b905b25cfa2f25a").map(s-> {
             response.setEjemplos(s);
@@ -206,7 +206,7 @@ valores -> toFluxx(valores).flatMap(valor -> {
 
     }
 
-    private Map<String, List<OperationResponse>> buildMapa(String key, List<OperationResponse> lista) {
+    /*private Map<String, List<OperationResponse>> buildMapa(String key, List<OperationResponse> lista) {
         log.info("buildMapa :: KEY -  " + key);
         log.info("buildMapa :: LISTA -  " + lista);
         Map<String, List<OperationResponse>> mapa = new HashMap<String, List<OperationResponse>>();
@@ -248,7 +248,7 @@ valores -> toFluxx(valores).flatMap(valor -> {
         }
 
 
-    }
+    }*/
 
 /*
     private Mono<List<OpResponse>> listMono(List<AccountResponse> accounts, CustomerOperationsResponse response) {

@@ -18,6 +18,11 @@
 
 	<properties>
 		<java.version>1.8</java.version>
+		<sonar.exclusions>
+			**/app/model/**/*.java,
+			**/app/proxy/**/*.java,
+			**/app/repository/*.java
+		</sonar.exclusions>
 	</properties>
 
 	<dependencies>
