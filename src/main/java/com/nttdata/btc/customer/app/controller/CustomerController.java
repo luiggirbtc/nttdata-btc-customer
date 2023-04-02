@@ -6,7 +6,6 @@ import com.nttdata.btc.customer.app.model.request.UpdateCustomerRequest;
 import com.nttdata.btc.customer.app.model.response.BalanceResponse;
 import com.nttdata.btc.customer.app.model.response.CustomerOperationsResponse;
 import com.nttdata.btc.customer.app.model.response.CustomerResponse;
-import com.nttdata.btc.customer.app.proxy.ProductRetrofitClient;
 import com.nttdata.btc.customer.app.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,9 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,9 +45,6 @@ public class CustomerController {
      */
     @Autowired
     private CustomerService service;
-
-    @Autowired
-    private ProductRetrofitClient client;
 
     /**
      * Service check balance
@@ -104,11 +98,9 @@ public class CustomerController {
             @ApiResponse(responseCode = "400", description = "Bad Request", content = @Content),
             @ApiResponse(responseCode = "404", description = "Not found", content = @Content)})
     @GetMapping(value = "id/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<CustomerResponse>> findById(@PathVariable String id) {
+    public Mono<CustomerResponse> findById(@PathVariable String id) {
         log.info("Start FindById");
-        return service.findById(id)
-                .map(c -> new ResponseEntity<>(c, HttpStatus.OK))
-                .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        return service.findById(id);
     }
 
     /**
@@ -144,11 +136,9 @@ public class CustomerController {
             @ApiResponse(responseCode = "400", description = "Bad Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
     @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<CustomerResponse>> createCustomer(@Valid @RequestBody final CustomerRequest request) {
+    public Mono<CustomerResponse> createCustomer(@Valid @RequestBody final CustomerRequest request) {
         log.info("Start CreateCustomer.");
-        return service.save(request)
-                .map(p -> new ResponseEntity<>(p, HttpStatus.CREATED))
-                .defaultIfEmpty(new ResponseEntity<>(HttpStatus.CONFLICT));
+        return service.save(request);
     }
 
     /**
@@ -165,11 +155,9 @@ public class CustomerController {
             @ApiResponse(responseCode = "400", description = "Bad Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
     @PutMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<CustomerResponse>> updateCustomer(@Valid @RequestBody final UpdateCustomerRequest request) {
+    public Mono<CustomerResponse> updateCustomer(@Valid @RequestBody final UpdateCustomerRequest request) {
         log.info("Start UpdateCustomer.");
-        return service.update(request)
-                .map(response -> new ResponseEntity<>(response, HttpStatus.OK))
-                .defaultIfEmpty(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+        return service.update(request);
     }
 
     /**
@@ -205,9 +193,7 @@ public class CustomerController {
             @ApiResponse(responseCode = "400", description = "Bad Request", content = @Content),
             @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)})
     @DeleteMapping(value = "/{id}")
-    public Mono<ResponseEntity<Void>> deleteCustomer(@PathVariable(value = "id") final String id) {
-        return service.delete(id)
-                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)))
-                .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public Mono<Void> deleteCustomer(@PathVariable(value = "id") final String id) {
+        return service.delete(id);
     }
 }

@@ -1,5 +1,6 @@
 package com.nttdata.btc.customer.app.service.impl;
 
+import com.nttdata.btc.customer.app.cache.RedisRepository;
 import com.nttdata.btc.customer.app.model.entity.Customer;
 import com.nttdata.btc.customer.app.model.request.BalanceRequest;
 import com.nttdata.btc.customer.app.model.request.CustomerRequest;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.nttdata.btc.customer.app.util.mappers.CustomerResponseMapper;
 import com.nttdata.btc.customer.app.util.mappers.OpResponseMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
@@ -64,10 +66,18 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired
     AccountRetrofitClient accountClient;
 
+    @Autowired
+    private RedisRepository redis;
+
     /**
      * Reference interface OpResponseMapper.
      */
-    private OpResponseMapper opMapper = Mappers.getMapper(OpResponseMapper.class);
+    //private OpResponseMapper opMapper = Mappers.getMapper(OpResponseMapper.class);
+
+    /**
+     * Reference interface CustomerResponseMapper.
+     */
+    private CustomerResponseMapper custMapper = Mappers.getMapper(CustomerResponseMapper.class);
 
     /**
      * This method return all customers.
@@ -78,7 +88,9 @@ public class CustomerServiceImpl implements CustomerService {
     public Flux<CustomerResponse> findAll() {
         return repository.findAll().filter(Customer::isStatus)
                 .map(c -> buildCustomerR.apply(c))
-                .onErrorReturn(new CustomerResponse());
+                .flatMap(response -> Flux.just(redis.save(custMapper.toRedis(response))).map(beanCache -> response))
+                .onErrorResume(e -> Flux.error(customException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())));
     }
 
     /**
@@ -89,10 +101,11 @@ public class CustomerServiceImpl implements CustomerService {
      */
     @Override
     public Mono<CustomerResponse> findById(String id) {
-        return repository.findById(id)
-                .filter(Customer::isStatus)
-                .map(e -> buildCustomerR.apply(e))
-                .onErrorReturn(new CustomerResponse());
+        return Mono.just(redis.findById(id)).flatMap(beanCache -> (null != beanCache.getId_customer()) ? Mono.just(
+                custMapper.redisToResponse(beanCache)) : repository.findById(id).filter(Customer::isStatus)
+                .map(e -> buildCustomerR.apply(e)))
+                .onErrorResume(e -> Mono.error(customException(HttpStatus.BAD_REQUEST,
+                        HttpStatus.BAD_REQUEST.getReasonPhrase())));
     }
 
     /**
@@ -105,7 +118,8 @@ public class CustomerServiceImpl implements CustomerService {
     public Mono<CustomerResponse> save(CustomerRequest request) {
         return repository.save(buildCustomer.apply(request))
                 .flatMap(entity -> Mono.just(buildCustomerR.apply(entity)))
-                .onErrorReturn(new CustomerResponse());
+                .onErrorResume(e -> Mono.error(customException(HttpStatus.BAD_REQUEST,
+                        HttpStatus.BAD_REQUEST.getReasonPhrase())));
     }
 
     /**
@@ -118,7 +132,8 @@ public class CustomerServiceImpl implements CustomerService {
     public Mono<Void> delete(String id) {
         return repository.findById(id).filter(Customer::isStatus)
                 .map(e -> updateStatus.apply(e, DEFAULT_FALSE))
-                .flatMap(e -> repository.delete(e));
+                .flatMap(e -> repository.save(e))
+                .then();
     }
 
     /**
@@ -146,7 +161,8 @@ public class CustomerServiceImpl implements CustomerService {
                 .map(entity -> updateCustomer.apply(request, entity))
                 .flatMap(customer -> repository.save(customer))
                 .flatMap(cupdated -> Mono.just(buildCustomerR.apply(cupdated)))
-                .onErrorReturn(new CustomerResponse());
+                .onErrorResume(e -> Mono.error(customException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())));
     }
 
     /**
@@ -180,106 +196,14 @@ public class CustomerServiceImpl implements CustomerService {
      */
     @Override
     public Mono<CustomerOperationsResponse> getOperations(BalanceRequest request) {
-        //List<OpResponse> operations = new ArrayList<>();
-        //List<OperationResponse> listOperations = new ArrayList<>();
-        // CustomerOperationsResponse response = new CustomerOperationsResponse();
-        /*return operationClient.findBySourceAcc("640c24cd3b905b25cfa2f25a").map(s-> {
-            response.setEjemplos(s);
-        return response;
-        });*/
         return getCustomer(request)
                 .map(entity -> buildCustomerR.apply(entity))
                 .map(customer -> CustomerOperationsResponse.builder().customer(customer).build())
                 .flatMap(response -> accountClient.findByHolder(response.getCustomer().getId_customer())
-                        .map(accounts -> accounts.stream().filter(s -> request.getCodeProduct().equalsIgnoreCase(s.getProduct())).map(s -> s.getId_account()).collect(Collectors.toList())
-                        ).map(s -> response));
-/*
-valores -> toFluxx(valores).flatMap(valor -> {
-                            //return operationClient.findBySourceAcc(valor).map(lista -> buildMapa(valor, lista))))
-                             //   }
-        return new CustomerOperationsResponse();})
-            .map(f -> {
-        log.info("PRINT-F :: " +f);
-        return response;
-    })
- */
+                        .map(accounts -> accounts.stream().filter(s -> request.getCodeProduct().equalsIgnoreCase(s.getProduct()))
+                                .map(s -> s.getId_account()).collect(Collectors.toList())).map(s -> response));
 
     }
-
-    /*private Map<String, List<OperationResponse>> buildMapa(String key, List<OperationResponse> lista) {
-        log.info("buildMapa :: KEY -  " + key);
-        log.info("buildMapa :: LISTA -  " + lista);
-        Map<String, List<OperationResponse>> mapa = new HashMap<String, List<OperationResponse>>();
-        return (Map<String, List<OperationResponse>>) mapa.put(key, lista);
-    }
-
-    private Flux<String> toFluxx(List<String> lista) {
-        return Flux.fromIterable(lista);
-    }
-
-    private void printOrep(List<OperationResponse> oResponse) {
-        log.info("START-OREP :: " + oResponse);
-        oResponse.stream().forEach(System.out::println);
-    }
-
-    private Flux<AccountResponse> createFluxAccRep(List<AccountResponse> value) {
-        return Mono.just(value).flatMapMany(Flux::fromIterable);
-    }
-
-    private void consumeProductx(List<AccountResponse> value, List<OperationResponse> listOperations) {
-        value.forEach(account -> {
-            log.info("ACCOUNT :: " + account);
-            consumeClient(account, listOperations);
-        });
-    }
-
-
-    private void consumeClient(AccountResponse x, List<OperationResponse> listOperations) {
-        log.info("ACCOUNT-RESPONSE :: " + x);
-        try {
-            operationClient.findBySourceAcc(x.getId_account()).map(y -> {
-                log.info("LISTxxx  :: " + y);
-                listOperations.addAll(y);
-                return listOperations;
-            });
-            log.info("LIST-OPERATIONS:: " + listOperations);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-
-
-    }*/
-
-/*
-    private Mono<List<OpResponse>> listMono(List<AccountResponse> accounts, CustomerOperationsResponse response) {
-        List<OpResponse> operations = new ArrayList<>();
-        accounts.stream().map(account -> operationClient.findBySourceAcc(account.getId_account()))
-                .flatMap(x -> x.)
-.map(oResponse -> {
-            log.info("O-RESPONSE :: " + oResponse);
-
-            oResponse.stream().forEach(o -> operations.add(opMapper.toOpResponse(o)));
-            return operations;
-        });
-
-    }*/
-    /*
-                                        value.forEach(account -> operationClient.findBySourceAcc(account.getId_account())
-                                            .map(oResponse -> {
-                                                log.info("O-RESPONSE :: " + oResponse);
-                                                List<OpResponse> operations = new ArrayList<>();
-                                                oResponse.stream().forEach(o -> operations.add(opMapper.toOpResponse(o)));
-
-
-                                                response.setOperations(operations);
-
-
-                                                return response;
-
-                                            }));
-                                    response.setCodeProduct(request.getCodeProduct());
-                                    return response;
-     */
 
     /**
      * Method to group accounts by product.
@@ -387,34 +311,15 @@ valores -> toFluxx(valores).flatMap(valor -> {
         response.setStatus(c.isStatus());
         return response;
     };
-}
-/*
-    public Mono<CustomerOperationsResponse> getOperations(BalanceRequest request) {
-        return getCustomer(request)
-                .map(entity -> buildCustomerR.apply(entity))
-                .map(customer -> CustomerOperationsResponse.builder().customer(customer).build())
-                .flatMap(response -> accountClient.findByHolder(response.getCustomer().getId_customer())
-                        .map(accounts -> accounts.stream().filter(s -> request.getCodeProduct().equalsIgnoreCase(s.getProduct()))
-                                .collect(Collectors.groupingBy(AccountResponse::getProduct)))
-                        .map(map -> {
-                            map.forEach((key, value) -> {
-                                value.stream().forEach(account -> operationClient.findBySourceAcc(account.getCode_account())
-                                        .map(oResponse -> {
-                                            List<OpResponse> operations = new ArrayList<>();
-                                            oResponse.stream().forEach(o -> operations.add(opMapper.toOpResponse(o)));
 
-
-                                            response.setOperations(operations);
-                                            response.setCodeProduct(key);
-
-                                            return response;
-
-                                        }));
-
-                                log.info("MAPA --- " + key + ":" + value);
-                            });
-                            return response;
-                        })
-                );
+    /**
+     * Method custom exception.
+     *
+     * @param status  {@link HttpStatus}
+     * @param message {@link String}
+     * @return {@link ResponseStatusException}
+     */
+    private ResponseStatusException customException(HttpStatus status, String message) {
+        return new ResponseStatusException(status, message);
     }
- */
+}
