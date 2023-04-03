@@ -1,5 +1,6 @@
 package com.nttdata.btc.customer.app.cache;
 
+import com.nttdata.btc.customer.app.cache.RedisCustomer;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

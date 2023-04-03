@@ -14,6 +14,7 @@ import com.nttdata.btc.customer.app.proxy.AccountRetrofitClient;
 import com.nttdata.btc.customer.app.proxy.beans.account.AccountResponse;
 import com.nttdata.btc.customer.app.repository.CustomerRepository;
 import com.nttdata.btc.customer.app.service.impl.CustomerServiceImpl;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class CustomerServiceImplTest {
 
     @Mock
     AccountRetrofitClient accountClient;
+
+    @Mock
+    CustomerEventsService eventsService;
 
     @InjectMocks
     CustomerServiceImpl service;

@@ -16,6 +16,7 @@ import com.nttdata.btc.customer.app.proxy.OperationRetrofitClient;
 import com.nttdata.btc.customer.app.proxy.beans.account.AccountResponse;
 import com.nttdata.btc.customer.app.proxy.beans.operation.OperationResponse;
 import com.nttdata.btc.customer.app.repository.CustomerRepository;
+import com.nttdata.btc.customer.app.service.CustomerEventsService;
 import com.nttdata.btc.customer.app.service.CustomerService;
 
 import java.util.ArrayList;
@@ -69,6 +70,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired
     private RedisRepository redis;
 
+    @Autowired
+    private CustomerEventsService eventsService;
+
     /**
      * Reference interface OpResponseMapper.
      */
@@ -118,7 +122,10 @@ public class CustomerServiceImpl implements CustomerService {
     public Mono<CustomerResponse> save(CustomerRequest request) {
         return repository.save(buildCustomer.apply(request))
                 .flatMap(entity -> Mono.just(buildCustomerR.apply(entity)))
-                .onErrorResume(e -> Mono.error(customException(HttpStatus.BAD_REQUEST,
+                .flatMap(response -> {
+                    eventsService.publish(response);
+                    return Mono.just(response);
+                }).onErrorResume(e -> Mono.error(customException(HttpStatus.BAD_REQUEST,
                         HttpStatus.BAD_REQUEST.getReasonPhrase())));
     }
 
